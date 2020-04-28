@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang ='en'>
+<meta name='author' content='Jared Bawden'>
+<head>
+    <title>Concentration Game</title>
+    <style>
+        body{
+            background-image: url("./photos/background.jpg");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-color: rgba(255, 255, 255, .2);
+            background-blend-mode: lighten;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 0cm;
+        }
+        #high {
+            text-align: center;
+        }
+        #options {
+            text-align: center;
+        }
+        #buttons {
+            text-align: center;
+        }
+        #createTable {
+            width: 100%;
+            height: 100%;
+        }
+        #myTable {
+            margin: 0 auto;
+        }
+        #scoreboard {
+            text-align: center;
+            padding-bottom: 15px;
+        }
+        #time {
+            display: inline;
+            padding: 40px;
+        }
+        #score {
+            display: inline;
+            padding: 40px;
+        }
+    </style>
+    <script>
+        function generateTable(row, column) {
+            // Create the table
+            createTable = document.getElementById('createTable');
+            table = document.createElement('table');
+            table.setAttribute('id', 'myTable');
+            createTable.appendChild(table);
+            // For loop to create table rows            
+            for (i = 0; i < row; i++) {
+                createdRow = table.insertRow(i);
+                // For loop to create table cells in each  row
+                for (x = 0; x < column; x++) {
+                    var cell = createdRow.insertCell(x);
+                    cell.innerHTML = '<img src="./photos/ski_back.jpg" style="width:120px">'
+                }
+            }
+            addClickHandlers()
+        }
+        var cardGrid = [];
+        function randomize(size) {
+            numberPairs = [];
+            for (var i = 1; i <= size; i++) {
+                numberPairs.push(i,i);
+            }
+            for (var i = numberPairs.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * i);
+                var temp = numberPairs[i];
+                numberPairs[i] = numberPairs[j];
+                numberPairs[j] = temp;
+            }
+            for (var i = 0 ; i < 4; i++) {
+                cardGrid[i] = []; //row is always four. size has to increment by 2
+                for (var j = 0; j < size/2; j++) { 
+                    cardGrid[i][j] = numberPairs.pop();
+                }
+            }
+            console.log(cardGrid)
+        }
+        function getSquare(row, column){
+            return cardGrid[row][column];
+        }
+        function addClickHandlers() {
+            var tableGrid = document.getElementById('myTable')
+            var cells = tableGrid.getElementsByTagName('td')
+            for (var i = 0; i < cells.length; i++) {
+                cells[i].onclick = flipCard;
+            }
+        }
+        var turnedCard1 = null;
+        var turnedCard2 = null;
+        var card1Value = null;
+        var card2Value = null;
+        var flippedCards = []
+        var score = 0;
+        var seconds = 60;
+        var gameStarted = false;
+        function flipCard() {
+            if (gameStarted == false) {
+                if (seconds == 0) {
+                    return
+                }
+                gameStarted = true;
+                timer()
+            }
+            if (turnedCard2) {
+                return
+            }
+            cardNum = getSquare(this.parentNode.rowIndex, this.cellIndex)
+            if (flippedCards.includes(cardNum)) {
+                return
+            }
+            this.innerHTML = '<img src="./photos/' + theme + cardNum + '.jpg" style="width:120px">'
+            if (turnedCard1 !== null && this !== turnedCard1) {
+                turnedCard2 = this;
+                card2Value = cardNum;
+                pending = window.setTimeout(processCards,1000);
+            }
+            else {
+                turnedCard1 = this;
+                card1Value = cardNum;
+            }
+        }
+        function processCards() {
+            if (card1Value == card2Value) {
+                flippedCards.push(card1Value);
+                var sound = document.getElementById('sound').play();
+                score += 1;
+                displayScore = document.getElementById('score');
+                displayScore.innerHTML = 'Score: ' + score;
+                if (localStorage.getItem('high') == null || localStorage.getItem('high') < score) {
+                    localStorage.setItem('high', score);
+                    document.getElementById('high').innerHTML = 'Highscore: ' + score
+                }
+                turnedCard1 = null;
+                turnedCard2 = null;
+            }
+            else {
+                turnedCard1.innerHTML = '<img src="./photos/ski_back.jpg" style="width:120px">';
+                turnedCard2.innerHTML = '<img src="./photos/ski_back.jpg" style="width:120px">';
+                turnedCard1 = null;
+                turnedCard2 = null;
+            }
+        }
+        var theme = ''
+        function newGame() {
+            document.getElementById('createTable').innerHTML = "";
+            difficulty = document.getElementById('difficulty').value;
+            theme = document.getElementById('theme').value;
+            if (difficulty == 'easy') {
+                generateTable(4,4);
+                randomize(8);
+            }
+            else if (difficulty == 'normal') {
+                generateTable(4,5);
+                randomize(10);
+            }
+            else {
+                generateTable(4,6);
+                randomize(12);
+            }
+            gameStarted = false
+            flippedCards = []
+            score = 0;
+            document.getElementById('score').innerHTML = 'Score: 0'
+            seconds = 60
+            document.getElementById('time').innerHTML = 'Time: 60'
+            document.getElementById('high').innerHTML = 'Highscore: ' + localStorage.getItem('high')
+            turnedCard1 = null;
+            turnedCard2 = null;
+        }
+        function timer() {
+            var timer = setInterval(function(){
+                if (gameStarted == false) {
+                    clearInterval(timer);
+                    return
+                }
+                seconds--;
+                document.getElementById('time').innerHTML = 'Time: ' + seconds;
+                if (seconds == 0) {
+                    gameStarted = false;
+                }
+            }, 1000);
+        }
+        function clearHigh() {
+            localStorage.clear('high', null)
+            document.getElementById('high').innerHTML = 'Highscore: ' + localStorage.getItem('high')
+        }
+    </script>
+</head>
+<body onload='newGame()'>
+    <h1>Concentration</h1>
+    <div id = "options">
+        <label for="difficulty">Difficulty:</label>
+        <select id="difficulty">
+            <option value="easy">easy</option>
+            <option value="normal">normal</option>
+            <option value="hard">hard</option>
+        </select>
+        <label for="theme">Theme:</label>
+        <select id="theme">
+            <option value="ski">ski</option>
+            <option value="snowboard">snowboard</option>
+        </select>
+    </div>
+    <br>
+    <div id="buttons">
+        <input type="button" onclick="newGame()" value="New Game">
+        <input type="button" onclick='clearHigh()', value="Clear Highscore">
+    </div>
+    <p id='high'></p>
+    <div id="scoreboard">
+        <h2 id='time'></h2>
+        <h2 id='score'></h2>
+    </div>
+    <div id='createTable'></div>
+    <audio id=sound  src="bell.mp3"></audio>
+</body>
+</html>
